@@ -1,5 +1,14 @@
+FORK INFO
+===========
+This fork is meant as a submodule for https://github.com/ErikSeewald/KP-WSI
+
+Main changes:
+- Added sish_adaper.py to make using an external DATA directory (on a different drive for example) easier
+- Added search_adapter.py and modified main_search.py accordingly as to allow using the same functionality to run all queries and just a single query
+
 SISH 
 ===========
+
 Fast and scalable search of whole-slide images via self-supervised deep learning
 
 *Nature Biomedical Engineering*
