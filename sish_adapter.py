@@ -1,5 +1,5 @@
 import main_search
-import core_search
+import search_adapter
 
 
 def get_data_path(site: str) -> tuple[str, str, str, str]:
@@ -33,7 +33,7 @@ def individual_search_adapter():
     latent: str = input("Path (including filename) of the latent h5 file to query with: ")
 
     print("Starting individual search...")
-    core_search.individual_search(site, latent, db_index_path, index_meta_path, codebook_semantic)
+    search_adapter.individual_search(site, latent, db_index_path, index_meta_path, codebook_semantic)
 
 
 def main_search_adapter():

@@ -4,7 +4,7 @@ import pickle
 import glob
 from database import HistoDatabase
 from tqdm import tqdm
-import core_search
+import search_adapter
 
 
 def run(latent_path="./DATA/LATENT", site=None,
@@ -32,7 +32,7 @@ def run(latent_path="./DATA/LATENT", site=None,
                        codebook_semantic=codebook_semantic)
     results = {}
     for latent in tqdm(glob.glob(latent_all)):
-        core_search.run_query(site, latent, db, speed_record_path, results)
+        search_adapter.run_query(site, latent, db, speed_record_path, results)
 
     with open(os.path.join(save_path, "results.pkl"), 'wb') as handle:
         pickle.dump(results, handle)
