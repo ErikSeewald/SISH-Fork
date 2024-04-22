@@ -1,3 +1,8 @@
+"""
+This module adapts some functionality formerly present in main_search.py
+This lets us use the same code for multiple item and single item query.
+"""
+
 import time
 import os
 import h5py
@@ -10,19 +15,29 @@ IGNORE_SLIDES = ['TCGA-C5-A8YT-01Z-00-DX1.5609D977-4B7E-4B49-A3FB-50434D6E49F9',
                  'C3N-02678-21']
 
 
-def run_query(site, latent, db, speed_record_path, results):
+def run_query(site: str, latent_path: str, db: HistoDatabase, speed_record_path: str, results: dict) -> None:
 
     """
-    Runs a single query on the wsi of the given site represented by the specific latent code.
-    Uses a prebuilt SISH database db.
+    Runs a single query for similar items to the item represented by the given latent code.
+
+    Args:
+        site: The physical site in the body of the whole slide image.
+        latent_path: The path to the latent code of the item to query for.
+        db: The prebuilt HistoDatabase.
+        speed_record_path: The path to write the speed recording to.
+        results: The dictionary to which the results should be written.
     """
-    latent = latent.replace("\\", "/")
-    print(latent)
-    diagnosis = latent.split("/")[-4]
-    anatomic_site = latent.split("/")[-5]
 
+    # Standardize latent path
+    latent_path = latent_path.replace("\\", "/")
+    print(latent_path)
 
-    slide_id = os.path.basename(latent).replace(".h5", "")
+    # Extract info
+    diagnosis = latent_path.split("/")[-4]
+    anatomic_site = latent_path.split("/")[-5]
+
+    # Ignore handling
+    slide_id = os.path.basename(latent_path).replace(".h5", "")
     if slide_id in IGNORE_SLIDES:
         return
 
@@ -36,32 +51,52 @@ def run_query(site, latent, db, speed_record_path, results):
         patient_id = slide_id.split("-")[2]
         db.leave_one_patient(patient_id)
 
-    densefeat_path = latent.replace("vqvae", "densenet").replace(".h5", ".pkl")
-    with h5py.File(latent, 'r') as hf:
+    # Densefeat replacement
+    densefeat_path = latent_path.replace("vqvae", "densenet").replace(".h5", ".pkl")
+    with h5py.File(latent_path, 'r') as hf:
         feat = hf['features'][:]
     with open(densefeat_path, 'rb') as handle:
         densefeat = pickle.load(handle)
 
+    # Query
     t_start = time.time()
-    tmp_res = []
+    temp_results = []
+
     for idx, patch_latent in enumerate(feat):
         res = db.query(patch_latent, densefeat[idx])
-        tmp_res.append(res)
+        temp_results.append(res)
+
+    # Write speed recording
     t_elapse = time.time() - t_start
     with open(os.path.join(speed_record_path, "speed_log.txt"), 'a') as fw:
         fw.write(slide_id + "," + str(t_elapse) + "\n")
     print("Search takes ", t_elapse)
 
+    # Update results
     key = slide_id
     results[key] = {'results': None, 'label_query': None}
-    results[key]['results'] = tmp_res
+    results[key]['results'] = temp_results
     if site == 'organ':
         results[key]['label_query'] = anatomic_site
     else:
         results[key]['label_query'] = diagnosis
 
 
-def individual_search(site, latent, db_index_path, index_meta_path, codebook_semantic):
+def individual_search(site: str, latent_path: str,
+                      db_index_path: str, index_meta_path: str, codebook_semantic: str) -> None:
+    """
+    Builds the database and starts a query for an individual latent code wsi item.
+    Then it writes the results and speed recording to the standard save path.
+
+    Args:
+        site: The physical site in the body of the whole slide image.
+        latent_path: The path to the latent code of the item to query for.
+        db_index_path: The path to the index_tree/veb.pkl of the site to search through
+        index_meta_path: The path to the index_meta/meta.pkl of the site to search through
+        codebook_semantic: The path to the checkpoints/codebook_semantic.pt
+    """
+
+    # Result and speed recording paths
     save_path = os.path.join("QUERY_RESULTS", site)
     speed_record_path = os.path.join("QUERY_SPEED", site)
     if not os.path.exists(save_path):
@@ -69,11 +104,14 @@ def individual_search(site, latent, db_index_path, index_meta_path, codebook_sem
     if not os.path.exists(speed_record_path):
         os.makedirs(speed_record_path)
 
+    # Construct database
     db = HistoDatabase(database_index_path=db_index_path,
                        index_meta_path=index_meta_path,
                        codebook_semantic=codebook_semantic)
+    # Run query
     results = {}
-    run_query(site, latent, db, speed_record_path, results)
+    run_query(site, latent_path, db, speed_record_path, results)
 
+    # Save results
     with open(os.path.join(save_path, "results.pkl"), 'wb') as handle:
         pickle.dump(results, handle)
