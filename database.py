@@ -29,15 +29,15 @@ class HistoDatabase(object):
         self.index_meta_path = index_meta_path
         self.is_patch = is_patch
 
-        print("Loading database index...")
+        print("Loading database index...", flush=True)
         with open(self.database_index_path, 'rb') as handle:
             self.vebtree = pickle.load(handle)
 
-        print("Loading index meta...")
+        print("Loading index meta...", flush=True)
         with open(self.index_meta_path, 'rb') as handle:
             self.meta = pickle.load(handle)
 
-        print("Loading semantic codebook")
+        print("Loading semantic codebook", flush=True)
         self.codebook_semantic = torch.load(codebook_semantic)
         self.pool_layers = [torch.nn.AvgPool2d(kernel_size=(2, 2)),
                             torch.nn.AvgPool2d(kernel_size=(2, 2)),
@@ -74,10 +74,13 @@ class HistoDatabase(object):
         C (int): The width of interval to expand the given search index
         T (int): The number fo time to expand the index
         """
+
         index = self.preprocessing(patch)
+
         indices_nn = self.search(index, dense_feat,
                                  pre_step=pre_step, succ_step=succ_step,
                                  C=C, T=T, thrsh=thrsh)
+
         results = self.postprocessing(indices_nn)
         return results
 

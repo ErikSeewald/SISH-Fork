@@ -30,7 +30,7 @@ def run_query(site: str, latent_path: str, db: HistoDatabase, speed_record_path:
 
     # Standardize latent path
     latent_path = latent_path.replace("\\", "/")
-    print(latent_path)
+    print(f"\nRunning query on: {latent_path}", flush=True)
 
     # Extract info
     diagnosis = latent_path.split("/")[-4]
@@ -62,15 +62,19 @@ def run_query(site: str, latent_path: str, db: HistoDatabase, speed_record_path:
     t_start = time.time()
     temp_results = []
 
+    i = 0
     for idx, patch_latent in enumerate(feat):
+        if i % 10 == 0:
+            print(f"Processed {i} features...", flush=True)
         res = db.query(patch_latent, densefeat[idx])
         temp_results.append(res)
+        i += 1
 
     # Write speed recording
     t_elapse = time.time() - t_start
     with open(os.path.join(speed_record_path, "speed_log.txt"), 'a') as fw:
         fw.write(slide_id + "," + str(t_elapse) + "\n")
-    print("Search takes ", t_elapse)
+    print(f"\nSearch took {t_elapse} seconds", flush=True)
 
     # Update results
     key = slide_id
@@ -82,8 +86,7 @@ def run_query(site: str, latent_path: str, db: HistoDatabase, speed_record_path:
         results[key]['label_query'] = diagnosis
 
 
-def individual_search(site: str, latent_path: str,
-                      db_index_path: str, index_meta_path: str, codebook_semantic: str) -> None:
+def individual_search(site: str, latent_path: str, database: HistoDatabase) -> None:
     """
     Builds the database and starts a query for an individual latent code wsi item.
     Then it writes the results and speed recording to the standard save path.
@@ -91,9 +94,7 @@ def individual_search(site: str, latent_path: str,
     Args:
         site: The physical site in the body of the whole slide image.
         latent_path: The path to the latent code of the item to query for.
-        db_index_path: The path to the index_tree/veb.pkl of the site to search through
-        index_meta_path: The path to the index_meta/meta.pkl of the site to search through
-        codebook_semantic: The path to the checkpoints/codebook_semantic.pt
+        database: The database to search through
     """
 
     # Result and speed recording paths
@@ -104,14 +105,11 @@ def individual_search(site: str, latent_path: str,
     if not os.path.exists(speed_record_path):
         os.makedirs(speed_record_path)
 
-    # Construct database
-    db = HistoDatabase(database_index_path=db_index_path,
-                       index_meta_path=index_meta_path,
-                       codebook_semantic=codebook_semantic)
     # Run query
     results = {}
-    run_query(site, latent_path, db, speed_record_path, results)
+    run_query(site, latent_path, database, speed_record_path, results)
 
     # Save results
+    print("Writing results to results.pkl...")
     with open(os.path.join(save_path, "results.pkl"), 'wb') as handle:
         pickle.dump(results, handle)
