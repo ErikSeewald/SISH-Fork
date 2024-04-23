@@ -5,7 +5,8 @@ This fork is meant as a submodule for https://github.com/ErikSeewald/KP-WSI
 Main changes:
 - [sish_adapter.py](../sish_adapter.py):
     * Added sish_adapter to make using an external DATA directory (on a different drive for example) easier.
-    * Made reusing the same database object for the runtime of the program possible. No longer need to waste multiple minutes on rebuilding the database for a new query.
+    * Made reusing the same site specific database for the runtime of the program possible. No longer need to waste multiple minutes on rebuilding the database for a new query.
+      Database still needs to be rebuilt if a query needs to be run on a different site.
 - [search_adapter.py](../search_adapter.py):
     * Added search_adapter and modified [main_search.py](../main_search.py) accordingly to allow using a shared query function for both the search through all items and the single item search.
 - [database.py](../database.py):
