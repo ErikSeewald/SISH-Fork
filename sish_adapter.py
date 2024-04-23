@@ -37,9 +37,10 @@ def main_search_adapter() -> None:
     site: str = input(" - Site to search: ")
 
     latent_path, db_index_path, index_meta_path, codebook_semantic = get_data_paths(site)
-    build_database(db_index_path, index_meta_path, codebook_semantic)
+    if not database:
+        build_database(db_index_path, index_meta_path, codebook_semantic)
 
-    main_search.run(latent_path, site, database)
+    main_search.run(database, site, latent_path)
 
 
 def individual_search_adapter() -> None:
