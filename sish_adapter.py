@@ -8,6 +8,8 @@ import search_adapter
 from database import HistoDatabase
 
 database: HistoDatabase = None
+database_site: str = ""
+data_path: str = ""
 
 
 def main() -> None:
@@ -34,34 +36,59 @@ def main() -> None:
 def main_search_adapter() -> None:
     print("\n====MAIN SEARCH====")
     print("This will run a query for every single item in the database. That will take a long time.\n")
-    site: str = input(" - Site to search: ")
+    update_site_and_database()
 
-    latent_path, db_index_path, index_meta_path, codebook_semantic = get_data_paths(site)
-    if not database:
-        build_database(db_index_path, index_meta_path, codebook_semantic)
-
-    main_search.run(database, site, latent_path)
+    main_search.run(database, database_site, data_path + "LATENT")
 
 
 def individual_search_adapter() -> None:
     print("\n====INDIVIDUAL SEARCH====")
     print("Run a query for a specific item in the database.\n")
-    site: str = input(" - Site to search: ")
+    update_site_and_database()
 
     latent_path: str = input("\n - Path (including filename) of the latent h5 file to query with: ")
     latent_path = latent_path.replace("\"", "") # Windows 'copy as path' sometimes inserts ", so get rid of those
 
-    if not database:
-        _, db_index_path, index_meta_path, codebook_semantic = get_data_paths(site)
-        build_database(db_index_path, index_meta_path, codebook_semantic)
-
-    search_adapter.individual_search(site, latent_path, database)
+    search_adapter.individual_search(database, database_site, latent_path)
 
 
-def get_data_paths(site: str) -> tuple[str, str, str, str]:
+def update_site_and_database():
+    """
+        Asks the user for the site they want to query in and makes the necessary updates to global variables
+        (including the database)
+    """
+    global database, database_site
+
+    temp_site: str = input(" - Site to search: ")
+    update_database(temp_site)
+    database_site = temp_site
+
+
+def update_database(site: str) -> None:
+    """
+        Checks if the database needs to be rebuilt and if so, makes the necessary calls to do so.
+
+        Args:
+            site: The site the user intends to query in
+    """
+
+    global database, database_site
+
+    if database and site == database_site:
+        return
+
+    if database and site != database_site:
+        print("\n Because you intend to query a new site, the database needs to be rebuilt")
+
+    db_index_path, index_meta_path, codebook_semantic = update_data_paths(site)
+    build_database(db_index_path, index_meta_path, codebook_semantic)
+
+
+def update_data_paths(site: str) -> tuple[str, str, str]:
     """
     Asks the user for the path to their data folder and then constructs the necessary path strings
     needed for calling the standard SISH functionalities.
+    Also updates the global data_path variable.
     """
 
     print("\n**At this point you need to have a DATA folder that contains these directories: 'checkpoints', 'DATABASES'"
@@ -80,17 +107,21 @@ def get_data_paths(site: str) -> tuple[str, str, str, str]:
     print(f"Registered path: {path}\n")
 
     # Construct path strings
-    latent_path = path + "LATENT"
     db_index_path = path + "DATABASES/" + site + "/index_tree/veb.pkl"
     index_meta_path = path + "DATABASES/" + site + "/index_meta/meta.pkl"
     codebook_semantic = path + "checkpoints/codebook_semantic.pt"
 
-    return latent_path, db_index_path, index_meta_path, codebook_semantic
+    global data_path
+    data_path = path
+
+    return db_index_path, index_meta_path, codebook_semantic
 
 
 def build_database(db_index_path: str, index_meta_path: str, codebook_semantic: str) -> None:
     """
         Builds the latent code database out of prebuilt latent codes if it is not built already.
+        The database is specific to one region of the body and needs to be reloaded if another
+        site is to be searched.
 
         Args:
             db_index_path: The path to the index_tree/veb.pkl of the site to search through
@@ -103,7 +134,8 @@ def build_database(db_index_path: str, index_meta_path: str, codebook_semantic: 
     if database:
         return
 
-    print("Building database... \n(This will only need to run once. As long as you do not "
+    print("Building site specific database... \n(This will only need to run once if you intend "
+          "to continue querying the same site. As long as you do not "
           "exit the program, the database will stay loaded for your next queries.)", flush=True)
     database = HistoDatabase(database_index_path=db_index_path,
                              index_meta_path=index_meta_path,

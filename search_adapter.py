@@ -86,15 +86,15 @@ def run_query(site: str, latent_path: str, db: HistoDatabase, speed_record_path:
         results[key]['label_query'] = diagnosis
 
 
-def individual_search(site: str, latent_path: str, database: HistoDatabase) -> None:
+def individual_search(database: HistoDatabase, site: str, latent_path: str) -> None:
     """
     Builds the database and starts a query for an individual latent code wsi item.
     Then it writes the results and speed recording to the standard save path.
 
     Args:
+        database: The database to search through
         site: The physical site in the body of the whole slide image.
         latent_path: The path to the latent code of the item to query for.
-        database: The database to search through
     """
 
     # Result and speed recording paths
