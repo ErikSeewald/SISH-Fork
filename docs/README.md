@@ -9,7 +9,7 @@ Main changes:
 - [search_adapter.py](../search_adapter.py):
     * Added search_adapter and modified [main_search.py](../main_search.py) accordingly to allow using a shared query function for both the search through all items and the single item search.
 - [database.py](../database.py):
-    * Modified the database to print updates with 'flush=True' so you have a better idea of whats going on.
+    * Modified the database to print updates with 'flush=True' to ensure that they are printed consistently.
 
 SISH 
 ===========
