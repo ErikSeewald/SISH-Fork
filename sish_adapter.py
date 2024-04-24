@@ -6,6 +6,7 @@ on external drives holding the data.
 import main_search
 import search_adapter
 from database import HistoDatabase
+import eval as eval_script
 
 database: HistoDatabase = None
 database_site: str = ""
@@ -17,12 +18,15 @@ def main() -> None:
 
     while True:
         print("\n====SISH ADAPTER====")
-        util_choice = input("Choose function ('ms' for main search, 'is' for individual search', 'e' to exit): ")
+        util_choice = input("Choose function ('ms' for main search, 'is' for individual search', 'ev' for eval, "
+                            "'e' to exit): ")
 
         if util_choice == 'ms':
             main_search_adapter()
         elif util_choice == 'is':
             individual_search_adapter()
+        elif util_choice == 'ev':
+            eval_adapter()
         elif util_choice == 'e':
             if database:
                 print("Freeing memory, this may take a little while...", flush=True)
@@ -52,6 +56,24 @@ def individual_search_adapter() -> None:
     search_adapter.individual_search(database, database_site, latent_path)
 
 
+def eval_adapter() -> None:
+    print("\n====EVALUATE====")
+    print("Run the evaluation script for the results for a specific site.\n")
+    site: str = input(" - Site to eval: ")
+    result_path: str = input(" - Path to results directory: ")
+    result_path = result_path.replace("\"", "")
+    if site.upper() not in result_path.upper():
+        result_path += site + "/"
+    if "results.pkl" not in result_path:
+        result_path += "results.pkl"
+
+    latent_path: str = standardize_path(input(" - Path to latent directory: "))
+    if "LATENT" not in latent_path.upper():
+        latent_path += "LATENT/"
+
+    eval_script.eval(site, result_path, latent_path)
+
+
 def update_site_and_database():
     """
         Asks the user for the site they want to query in and makes the necessary updates to global variables
@@ -78,10 +100,16 @@ def update_database(site: str) -> None:
         return
 
     if database and site != database_site:
-        print("\n Because you intend to query a new site, the database needs to be rebuilt")
+        print("\nBecause you intend to query a new site, the database needs to be rebuilt")
 
     db_index_path, index_meta_path, codebook_semantic = update_data_paths(site)
-    build_database(db_index_path, index_meta_path, codebook_semantic)
+
+    print("Building site specific database... \n(This will only need to run once if you intend "
+          "to continue querying the same site. As long as you do not "
+          "exit the program, the database will stay loaded for your next queries.)", flush=True)
+    database = HistoDatabase(database_index_path=db_index_path,
+                             index_meta_path=index_meta_path,
+                             codebook_semantic=codebook_semantic)
 
 
 def update_data_paths(site: str) -> tuple[str, str, str]:
@@ -96,11 +124,7 @@ def update_data_paths(site: str) -> tuple[str, str, str]:
     path: str = input(" - Path to 'DATA': ")
 
     # Standardize the input
-    path = path.replace("\"", "")
-    path = path.replace("\\", "/")
-    if path[len(path) - 1] != "/":
-        path = path + "/"
-
+    path = standardize_path(path)
     if "DATA" not in path.upper():
         path += "DATA/"
 
@@ -117,29 +141,12 @@ def update_data_paths(site: str) -> tuple[str, str, str]:
     return db_index_path, index_meta_path, codebook_semantic
 
 
-def build_database(db_index_path: str, index_meta_path: str, codebook_semantic: str) -> None:
-    """
-        Builds the latent code database out of prebuilt latent codes if it is not built already.
-        The database is specific to one region of the body and needs to be reloaded if another
-        site is to be searched.
-
-        Args:
-            db_index_path: The path to the index_tree/veb.pkl of the site to search through
-            index_meta_path: The path to the index_meta/meta.pkl of the site to search through
-            codebook_semantic: The path to the checkpoints/codebook_semantic.pt
-    """
-
-    global database
-
-    if database:
-        return
-
-    print("Building site specific database... \n(This will only need to run once if you intend "
-          "to continue querying the same site. As long as you do not "
-          "exit the program, the database will stay loaded for your next queries.)", flush=True)
-    database = HistoDatabase(database_index_path=db_index_path,
-                             index_meta_path=index_meta_path,
-                             codebook_semantic=codebook_semantic)
+def standardize_path(path: str) -> str:
+    path = path.replace("\"", "")
+    path = path.replace("\\", "/")
+    if path[len(path) - 1] != "/":
+        path = path + "/"
+    return path
 
 
 if __name__ == "__main__":

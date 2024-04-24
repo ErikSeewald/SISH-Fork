@@ -34,7 +34,7 @@ def Uncertainty_Cal(bag, is_organ=False):
         # Counting the diagnoiss by weigted count
         # If the count is less than 1, round to 1
         for lb_idx, lb in enumerate(label):
-            label_count[lb] += (1. / (lb_idx + 1)) * weight[lb]
+            label_count[lb] += (1. / (lb_idx + 1)) * 1 # used to be "* weight[lb]" but idk where that var is from
         for k, v in label_count.items():
             if v < 1.0:
                 v = 1.0
@@ -120,24 +120,19 @@ def Filtered_BY_Prediction(bag_summary, label_count_summary):
     return bag_removed
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser("Evaluate the result of slide level search")
-    parser.add_argument("--result_path", required=True, help="The path to the query result")
-    parser.add_argument("--site", required=True, help="The anatomic site where the database is built upon")
-    args = parser.parse_args()
-
+def eval(site: str, result_path: str, latent_path: str) -> None:
     # Load the result file and corresponding slide's diagnosis label
-    with open(args.result_path, 'rb') as handle:
+    with open(result_path, 'rb') as handle:
         results = pickle.load(handle)
 
     # Count the number of slide in each diagnosis (organ)
-    if args.site == 'organ':
+    if site == 'organ':
         topK_mMV = 10
-        type_of_diagnosis = [os.path.basename(e) for e in glob.glob("./DATA/LATENT/*")]
+        type_of_diagnosis = [os.path.basename(e) for e in glob.glob(latent_path+"/*")]
     else:
         topK_mMV = 5
-        type_of_diagnosis = [os.path.basename(e) for e in glob.glob("./DATA/LATENT/{}/*"
-                             .format(args.site))]
+        type_of_diagnosis = [os.path.basename(e) for e in glob.glob(latent_path + "/{}/*"
+                                                                    .format(site))]
     total_slide = {k: 0 for k in type_of_diagnosis}
     for k, v in results.items():
         total_slide[v['label_query']] += 1
@@ -145,14 +140,17 @@ if __name__ == "__main__":
     # Using the inverse count as a weight for each diagnosis
     sum_inv = 0
     for v in total_slide.values():
-        sum_inv += (1./v)
+        if v == 0:
+            print("Cannot eval if there are no result files for a diagnosis")
+            return
+        sum_inv += (1. / v)
 
     # Set a parameter k  to make the weight sum to k (k = 10, here)
-    if args.site == 'organ':
+    if site == 'organ':
         norm_fact = 30 / sum_inv
     else:
         norm_fact = 10 / sum_inv
-    weight = {k: norm_fact * 1./v for k, v in total_slide.items()}
+    weight = {k: norm_fact * 1. / v for k, v in total_slide.items()}
 
     metric_dict = {k: {'Acc': 0, 'Percision': 0, 'total_slide': 0}
                    for k in weight.keys()}
@@ -185,7 +183,7 @@ if __name__ == "__main__":
                 len_info = []
                 label_count_summary = {}
                 for idx, bag in enumerate(test_slide_result):
-                    if args.site == 'organ':
+                    if site == 'organ':
                         ent, label_cnt, dist = Uncertainty_Cal(bag, is_organ=True)
                     else:
                         ent, label_cnt, dist = Uncertainty_Cal(bag)
@@ -208,7 +206,7 @@ if __name__ == "__main__":
                     for r in res:
                         if uncertainty == 0:
                             if r['slide_name'] not in visited:
-                                if args.site == 'organ':
+                                if site == 'organ':
                                     ret_final.append((r['slide_name'], r['hamming_dist'],
                                                       r['site'], uncertainty,
                                                       bag_index))
@@ -218,9 +216,9 @@ if __name__ == "__main__":
                                                       bag_index))
                                 visited[r['slide_name']] = 1
                         else:
-                            if (r['hamming_dist'] <= hamming_thrsh) and\
-                               (r['slide_name'] not in visited):
-                                if args.site == 'organ':
+                            if (r['hamming_dist'] <= hamming_thrsh) and \
+                                    (r['slide_name'] not in visited):
+                                if site == 'organ':
                                     ret_final.append((r['slide_name'], r['hamming_dist'],
                                                       r['site'], uncertainty,
                                                       bag_index))
@@ -260,7 +258,7 @@ if __name__ == "__main__":
                 if hit_label == label_query:
                     if len(ret_final) == topK_mMV:
                         corr += 1
-                    elif len(ret_final) < topK_mMV and\
+                    elif len(ret_final) < topK_mMV and \
                             Counter(ret_final).most_common(1)[0][1] >= math.ceil(topK_mMV / 2):
                         corr += 1
                 count += 1
@@ -269,3 +267,13 @@ if __name__ == "__main__":
         metric_dict[evlb]['total_slide'] = count
     print(time.time() - t_start)
     print(metric_dict)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser("Evaluate the result of slide level search")
+    parser.add_argument("--result_path", required=True, help="The path to the query result")
+    parser.add_argument("--site", required=True, help="The anatomic site where the database is built upon")
+    parser.add_argument("--latent_path", default="./DATA/LATENT", help="The path to your latent directory")
+    args = parser.parse_args()
+
+    eval(args.site, args.result_path, args.latent_path)
