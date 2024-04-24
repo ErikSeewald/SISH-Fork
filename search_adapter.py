@@ -65,7 +65,7 @@ def run_query(site: str, latent_path: str, db: HistoDatabase, speed_record_path:
     i = 0
     for idx, patch_latent in enumerate(feat):
         if i % 10 == 0:
-            print(f"Processed {i} features...", flush=True)
+            print(f"Processed {i} patches...", flush=True)
         res = db.query(patch_latent, densefeat[idx])
         temp_results.append(res)
         i += 1
@@ -108,6 +108,9 @@ def individual_search(database: HistoDatabase, site: str, latent_path: str) -> N
     # Run query
     results = {}
     run_query(site, latent_path, database, speed_record_path, results)
+
+    for entry in results:
+        print(entry)
 
     # Save results
     print("Writing results to results.pkl...")

@@ -18,15 +18,12 @@ def main() -> None:
 
     while True:
         print("\n====SISH ADAPTER====")
-        util_choice = input("Choose function ('ms' for main search, 'is' for individual search', 'ev' for eval, "
-                            "'e' to exit): ")
+        util_choice = input("Choose function ('ms' for main search, 'is' for individual search', 'e' to exit): ")
 
         if util_choice == 'ms':
             main_search_adapter()
         elif util_choice == 'is':
             individual_search_adapter()
-        elif util_choice == 'ev':
-            eval_adapter()
         elif util_choice == 'e':
             if database:
                 print("Freeing memory, this may take a little while...", flush=True)
@@ -54,24 +51,6 @@ def individual_search_adapter() -> None:
     latent_path = latent_path.replace("\"", "") # Windows 'copy as path' sometimes inserts ", so get rid of those
 
     search_adapter.individual_search(database, database_site, latent_path)
-
-
-def eval_adapter() -> None:
-    print("\n====EVALUATE====")
-    print("Run the evaluation script for the results for a specific site.\n")
-    site: str = input(" - Site to eval: ")
-    result_path: str = input(" - Path to results directory: ")
-    result_path = result_path.replace("\"", "")
-    if site.upper() not in result_path.upper():
-        result_path += site + "/"
-    if "results.pkl" not in result_path:
-        result_path += "results.pkl"
-
-    latent_path: str = standardize_path(input(" - Path to latent directory: "))
-    if "LATENT" not in latent_path.upper():
-        latent_path += "LATENT/"
-
-    eval_script.eval(site, result_path, latent_path)
 
 
 def update_site_and_database():
