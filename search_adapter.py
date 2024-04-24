@@ -109,8 +109,23 @@ def individual_search(database: HistoDatabase, site: str, latent_path: str) -> N
     results = {}
     run_query(site, latent_path, database, speed_record_path, results)
 
-    for entry in results:
-        print(entry)
+    # Get closest slides
+    cumulative_hamming_dists = {}
+    for id, entry in results.items():
+        print(f"Results for {id}:")
+        for result_list in entry['results']:
+            for r in result_list:
+                if r['slide_name'] in cumulative_hamming_dists:
+                    cumulative_hamming_dists[r['slide_name']]['total_hamming_dist'] += r['hamming_dist']
+                else:
+                    cumulative_hamming_dists[r['slide_name']] = {'total_hamming_dist': r['hamming_dist'],
+                                                                 'slide_name': r['slide_name'], 'diagnosis': r['diagnosis']}
+
+    accumulated_results = list(cumulative_hamming_dists.values())
+    sorted_accumulated_results = sorted(accumulated_results, key=lambda d: d['total_hamming_dist'])
+
+    min_10_hamming_dist = sorted_accumulated_results[:10]
+    print(f"Min 10 hamming dist by slides: {min_10_hamming_dist}")
 
     # Save results
     print("Writing results to results.pkl...")
