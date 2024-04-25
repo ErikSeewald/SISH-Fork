@@ -1,6 +1,6 @@
 FORK INFO
 ===========
-This fork is meant as a submodule for https://github.com/ErikSeewald/KP-WSI
+This fork is meant as a submodule for https://github.com/ErikSeewald/KP-WSI. (That one is currently private, but forks cannot be made private so this will just have to stay)
 
 Main changes:
 - [sish_adapter.py](../sish_adapter.py):
