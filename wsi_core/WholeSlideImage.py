@@ -7,7 +7,7 @@ import multiprocessing as mp
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-import openslide
+#import openslide
 from PIL import Image
 import pdb
 import h5py
@@ -16,6 +16,20 @@ from wsi_core.wsi_utils import savePatchIter_bag_hdf5, initialize_hdf5_bag, coor
 import itertools
 from wsi_core.util_classes import isInContourV1, isInContourV2, isInContourV3_Easy, isInContourV3_Hard, Contour_Checking_fn
 from utils.file_utils import load_pkl, save_pkl
+
+
+# The path can also be read from a config file, etc.
+OPENSLIDE_PATH = r'C:\Users\stran\openslide-bin-4.0.0.3-windows-x64\bin'
+
+import os
+if hasattr(os, 'add_dll_directory'):
+    # Windows
+    with os.add_dll_directory(OPENSLIDE_PATH):
+        import openslide
+else:
+    import openslide
+    
+    
 # def SamplePatches(hdf5_file_path, save_dir, downscale=1, n=20, sn=None):
 # 	file = h5py.File(hdf5_file_path, 'r')
 # 	dset = file['imgs']
@@ -420,7 +434,9 @@ class WholeSlideImage(object):
 		return level_downsamples
 
 	def process_contours(self, save_path, patch_level=0, patch_size=256, step_size=256, **kwargs):
-		save_path_hdf5 = os.path.join(save_path, str(self.name) + '.h5')
+		# since self.name of the WSI Objects contains the whole path to the svs, we need to split the path so we can get the proper title
+		_, tail = os.path.split(str(self.name))
+		save_path_hdf5 = os.path.join(save_path, tail + '.h5')
 		print("Creating patches for: ", self.name, "...",)
 		elapsed = time.time()
 		n_contours = len(self.contours_tissue)
