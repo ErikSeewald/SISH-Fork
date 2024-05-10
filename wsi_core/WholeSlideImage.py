@@ -434,8 +434,8 @@ class WholeSlideImage(object):
 		return level_downsamples
 
 	def process_contours(self, save_path, patch_level=0, patch_size=256, step_size=256, **kwargs):
-		# since self.name of the WSI Objects contains the whole path to the svs, we need to split the path so we can get the proper title
-		_, tail = os.path.split(str(self.name))
+		#  since self.name of the WSI Objects contains the whole path to the svs, we need to split the path so we can get the proper title
+		_,  tail = os.path.split(str(self.name))
 		save_path_hdf5 = os.path.join(save_path, tail + '.h5')
 		print("Creating patches for: ", self.name, "...",)
 		elapsed = time.time()

@@ -74,6 +74,7 @@ class isInContourV3_Easy(Contour_Checking_fn):
 	def __call__(self, pt): 
 		center = (pt[0]+self.patch_size//2, pt[1]+self.patch_size//2)
 		if self.shift > 0:
+			# cast to int is needed, otherwise soemtimes cv2.pontpolygon test will raise error that pt does not have right type
 			all_points = [(int(center[0]-self.shift), int(center[1]-self.shift)),
 						  (int(center[0]+self.shift), int(center[1]+self.shift)),
 						  (int(center[0]+self.shift), int(center[1]-self.shift)),
