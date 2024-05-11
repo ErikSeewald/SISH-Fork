@@ -11,6 +11,9 @@ import create_patches_fp
 import os
 import re
 import shutil
+import multiprocessing as mp
+import extract_mosaic
+import artifacts_removal
 
 database: HistoDatabase = None
 database_site: str = ""
@@ -23,7 +26,7 @@ def main() -> None:
     while True:
         print("\n====SISH ADAPTER====")
         util_choice = input("Choose function ('ms' for main search, 'is' for individual search', "
-                            "'p' to patchify, 'e' to exit): ")
+                            "'p' to patchify, 'mo' for mosaic creation, 'e' to exit): ")
 
         if util_choice == 'ms':
             main_search_adapter()
@@ -31,6 +34,8 @@ def main() -> None:
             individual_search_adapter()
         elif util_choice == 'p':
             patchify_adapter()
+        elif util_choice == 'mo':
+            mosaic_adapter()
         elif util_choice == 'e':
             if database:
                 print("Freeing memory, this may take a little while...", flush=True)
@@ -64,13 +69,8 @@ def patchify_adapter() -> None:
     print("\n====PATCHIFY====")
     print("Patchify the wsi images in your database.\n")
 
-    database_path: str = input(" - Path to your database folder: ").replace("\\", "/").replace("\"", "")
-    validation_result = validate_dir_for_patchify(database_path)
-    if not validation_result.is_valid:
-        print(f"\n ERROR: {validation_result.failure_message}")
-        return
-    if 'WSI' in database_path:
-        print(f"\n ERROR: WSI selected instead of higher level DATABASE path")
+    database_path = get_valid_wsi_path()
+    if database_path == "None":
         return
 
     new_base_path = os.path.join(database_path, 'PATCHES')
@@ -92,6 +92,62 @@ def patchify_adapter() -> None:
 
             print(f"\n\n\n------Starting patchify for {root} with size {size}------")
             create_patches_fp.process_images(source=root, save_dir=new_root, step_size=size, patch_size=size)
+
+
+def mosaic_adapter() -> None:
+    print("\n====MOSAIC CREATION====")
+    print("Create mosaics out of your raw svs files and your patchified h5 files.\n")
+    print("This step requires that you have done the patchify step already.")
+
+    database_path = get_valid_wsi_path()
+    if database_path == "None":
+        return
+
+    new_base_path = os.path.join(database_path, 'MOSAICS')
+    if os.path.exists(new_base_path):
+        shutil.rmtree(new_base_path)
+        print(f"Existing directory {new_base_path} removed", flush=True)
+
+    # MOSAIC CREATION
+    mag_dir_pattern = re.compile(r"^\d+x$")
+    num_cpu = mp.cpu_count()
+    for root, dirs, files in os.walk(database_path):
+        new_root = root.replace('WSI', 'MOSAICS')
+        os.makedirs(new_root, exist_ok=True)
+
+        # Run mosaic generation for each magnification subdirectory in the WSI path
+        # ( And assume that an equivalent PATCHES path already exists)
+        if mag_dir_pattern.match(os.path.basename(root)) and 'WSI' in root:
+            slide_path = root
+            patch_path = root.replace('WSI', 'PATCHES') + "/patches"
+            if not os.listdir(patch_path):
+                print(f"Skipping empty patch directory {patch_path}", flush=True)
+                shutil.rmtree(new_root)
+                continue
+
+            os.makedirs(os.path.join(new_root, 'coord'), exist_ok=True)
+            os.makedirs(os.path.join(new_root, 'coord_clean'), exist_ok=True)
+
+            print(f"\n\n\n------Starting mosaic generation for {root}------", flush=True)
+            extract_mosaic.process_slides(slide_path, patch_path, new_root, num_cpu)
+
+    # ARTIFACT REMOVAL
+    for site in os.listdir(new_base_path):
+        path = os.path.join(new_base_path, site)
+        print(f"\n\n\n------Starting artifact removal for {path}------", flush=True)
+        artifacts_removal.process_mosaics(path.replace('MOSAICS', 'WSI'), path)
+
+
+def get_valid_wsi_path() -> str:
+    database_path: str = input(" - Path to your database folder: ").replace("\\", "/").replace("\"", "")
+    validation_result = validate_dir_for_patchify(database_path)
+    if not validation_result.is_valid:
+        print(f"\n ERROR: {validation_result.failure_message}")
+        return "None"
+    if 'WSI' in database_path:
+        print(f"\n ERROR: WSI selected instead of higher level DATABASE path")
+        return "None"
+    return database_path
 
 
 def update_site_and_database():
