@@ -2,11 +2,17 @@ FORK INFO
 ===========
 This fork is meant as a submodule for https://github.com/ErikSeewald/KP-WSI. (That one is currently private, but forks cannot be made private so this will just have to stay)
 
+Patchifying:
+   - Using [sish_adapter.py](../sish_adapter.py) you can patchify the entire WSI directory (as long as it follows the structure specified in the vanilla slide preparation step) in one run.
+     On Linux this works out of the box as long as you install all the dependencies of this repository. On windows you will also need to modify [openslide_win_config.py](../openslide_win_config.py)
+     to include the path to the openslide-win64/bin on your machine. This binary can be downloaded on their [website](https://openslide.org/api/python/).
+
 Main changes:
 - [sish_adapter.py](../sish_adapter.py):
     * Added sish_adapter to make using an external DATA directory (on a different drive for example) easier.
     * Made reusing the same site specific database for the runtime of the program possible. No longer need to waste multiple minutes on rebuilding the database for a new query.
       Database still needs to be rebuilt if a query needs to be run on a different site.
+    * Made it possible to patchify the entire database in one run.
 - [search_adapter.py](../search_adapter.py):
     * Added search_adapter and modified [main_search.py](../main_search.py) accordingly to allow using a shared query function for both the search through all items and the single item search.
 - [database.py](../database.py):
