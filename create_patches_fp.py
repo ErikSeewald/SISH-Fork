@@ -217,9 +217,12 @@ def seg_and_patch(source, save_dir, patch_save_dir, mask_save_dir, stitch_save_d
                 with open(os.path.join(save_dir, "ignore.txt"), 'a') as fw:
                     fw.write(slide_id + "\n")
 
-        print("segmentation took {} seconds".format(seg_time_elapsed))
-        print("patching took {} seconds".format(patch_time_elapsed))
-        print("stitching took {} seconds".format(stitch_time_elapsed))
+        if seg:
+            print("segmentation took {} seconds".format(seg_time_elapsed))
+        if patch:
+            print("patching took {} seconds".format(patch_time_elapsed))
+        if stitch:
+            print("stitching took {} seconds".format(stitch_time_elapsed))
         df.loc[idx, 'status'] = 'processed'
 
         seg_times += seg_time_elapsed
@@ -231,52 +234,28 @@ def seg_and_patch(source, save_dir, patch_save_dir, mask_save_dir, stitch_save_d
     stitch_times /= total
 
     df.to_csv(os.path.join(save_dir, 'process_list_autogen.csv'), index=False)
-    print("average segmentation time in s per slide: {}".format(seg_times))
-    print("average patching time in s per slide: {}".format(patch_times))
-    print("average stiching time in s per slide: {}".format(stitch_times))
+    if seg:
+        print("average segmentation time in s per slide: {}".format(seg_times))
+    if patch:
+        print("average patching time in s per slide: {}".format(patch_times))
+    if stitch:
+        print("average stiching time in s per slide: {}".format(stitch_times))
     return seg_times, patch_times
 
 
-parser = argparse.ArgumentParser(description='seg and patch')
-parser.add_argument('--source', type=str,
-                    help='path to folder containing raw wsi image files')
-parser.add_argument('--step_size', type=int, default=256,
-                    help='step_size')
-parser.add_argument('--patch_size', type=int, default=256,
-                    help='patch_size')
-parser.add_argument('--patch', default=False, action='store_true')
-parser.add_argument('--seg', default=False, action='store_true')
-parser.add_argument('--stitch', default=False, action='store_true')
-parser.add_argument('--no_auto_skip', default=True, action='store_false')
-parser.add_argument('--save_dir', type=str,
-                    help='directory to save processed data')
-parser.add_argument('--preset', default=None, type=str,
-                    help='predefined profile of default segmentation and filter parameters (.csv)')
-parser.add_argument('--patch_level', type=int, default=0,
-                    help='downsample level at which to patch')
-parser.add_argument('--process_list',  type=str, default=None,
-                    help='name of list of images to process with parameters (.csv)')
+def process_images(source, save_dir, step_size=256, patch_size=256, patch=True, seg=True,
+                   stitch=True, no_auto_skip=True, preset=None, patch_level=0, process_list=None):
+    patch_save_dir = os.path.join(save_dir, 'patches')
+    mask_save_dir = os.path.join(save_dir, 'masks')
+    stitch_save_dir = os.path.join(save_dir, 'stitches')
 
-if __name__ == '__main__':
-    args = parser.parse_args()
-
-    patch_save_dir = os.path.join(args.save_dir, 'patches')
-    mask_save_dir = os.path.join(args.save_dir, 'masks')
-    stitch_save_dir = os.path.join(args.save_dir, 'stitches')
-
-    if args.process_list:
-        process_list = os.path.join(args.save_dir, args.process_list)
-
+    if process_list:
+        process_list = os.path.join(save_dir, process_list)
     else:
         process_list = None
 
-    print('source: ', args.source)
-    print('patch_save_dir: ', patch_save_dir)
-    print('mask_save_dir: ', mask_save_dir)
-    print('stitch_save_dir: ', stitch_save_dir)
-
-    directories = {'source': args.source,
-                   'save_dir': args.save_dir,
+    directories = {'source': source,
+                   'save_dir': save_dir,
                    'patch_save_dir': patch_save_dir,
                    'mask_save_dir': mask_save_dir,
                    'stitch_save_dir': stitch_save_dir}
@@ -291,8 +270,8 @@ if __name__ == '__main__':
     vis_params = {'vis_level': -1, 'line_thickness': 250}
     patch_params = {'use_padding': True, 'contour_fn': 'four_pt'}
 
-    if args.preset:
-        preset_df = pd.read_csv(os.path.join('presets', args.preset))
+    if preset:
+        preset_df = pd.read_csv(os.path.join('presets', preset))
         for key in seg_params.keys():
             seg_params[key] = preset_df.loc[0, key]
 
@@ -313,8 +292,28 @@ if __name__ == '__main__':
     print(parameters)
 
     seg_times, patch_times = seg_and_patch(**directories, **parameters,
-                                           patch_size=args.patch_size, step_size=args.step_size,
-                                           seg=args.seg,  use_default_params=False, save_mask=True,
-                                           stitch=args.stitch,
-                                           patch_level=args.patch_level, patch=args.patch,
-                                           process_list=process_list, auto_skip=args.no_auto_skip)
+                                           patch_size=patch_size, step_size=step_size,
+                                           seg=seg, use_default_params=False, save_mask=True,
+                                           stitch=stitch, patch_level=patch_level, patch=patch,
+                                           process_list=process_list, auto_skip=no_auto_skip)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Segmentation and patching of WSI images')
+    parser.add_argument('--source', type=str, required=True, help='path to folder containing raw WSI image files')
+    parser.add_argument('--save_dir', type=str, required=True, help='directory to save processed data')
+    parser.add_argument('--step_size', type=int, default=256, help='step size for patching')
+    parser.add_argument('--patch_size', type=int, default=256, help='size of each patch')
+    parser.add_argument('--patch', action='store_true', help='enable patching')
+    parser.add_argument('--seg', action='store_true', help='enable segmentation')
+    parser.add_argument('--stitch', action='store_true', help='enable stitching of patches')
+    parser.add_argument('--no_auto_skip', action='store_false', help='disable automatic skipping of existing patches')
+    parser.add_argument('--preset', type=str, help='preset parameters file (.csv)')
+    parser.add_argument('--patch_level', type=int, default=0, help='downsample level for patching')
+    parser.add_argument('--process_list', type=str, help='CSV list of images to process with parameters')
+
+    args = parser.parse_args()
+
+    process_images(args.source, args.save_dir, args.step_size, args.patch_size, args.patch,
+                   args.seg, args.stitch, args.no_auto_skip, args.preset, args.patch_level,
+                   args.process_list)

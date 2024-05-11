@@ -7,7 +7,16 @@ import multiprocessing as mp
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-#import openslide
+
+# HANDLE OS SPECIFIC OPENSLIDE IMPORT
+if hasattr(os, 'add_dll_directory'):
+	import openslide_win_config
+
+	with os.add_dll_directory(openslide_win_config.get_openslide_path()):
+		import openslide
+else:
+	import openslide
+
 from PIL import Image
 import pdb
 import h5py
@@ -16,19 +25,6 @@ from wsi_core.wsi_utils import savePatchIter_bag_hdf5, initialize_hdf5_bag, coor
 import itertools
 from wsi_core.util_classes import isInContourV1, isInContourV2, isInContourV3_Easy, isInContourV3_Hard, Contour_Checking_fn
 from utils.file_utils import load_pkl, save_pkl
-
-
-# The path can also be read from a config file, etc.
-OPENSLIDE_PATH = r'C:\Users\stran\openslide-bin-4.0.0.3-windows-x64\bin'
-
-import os
-if hasattr(os, 'add_dll_directory'):
-    # Windows
-    with os.add_dll_directory(OPENSLIDE_PATH):
-        import openslide
-else:
-    import openslide
-    
     
 # def SamplePatches(hdf5_file_path, save_dir, downscale=1, n=20, sn=None):
 # 	file = h5py.File(hdf5_file_path, 'r')

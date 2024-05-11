@@ -6,7 +6,11 @@ on external drives holding the data.
 import main_search
 import search_adapter
 from database import HistoDatabase
-import eval as eval_script
+from path_validation_duplicate import validate_dir_for_patchify
+import create_patches_fp
+import os
+import re
+import shutil
 
 database: HistoDatabase = None
 database_site: str = ""
@@ -18,12 +22,15 @@ def main() -> None:
 
     while True:
         print("\n====SISH ADAPTER====")
-        util_choice = input("Choose function ('ms' for main search, 'is' for individual search', 'e' to exit): ")
+        util_choice = input("Choose function ('ms' for main search, 'is' for individual search', "
+                            "'p' to patchify, 'e' to exit): ")
 
         if util_choice == 'ms':
             main_search_adapter()
         elif util_choice == 'is':
             individual_search_adapter()
+        elif util_choice == 'p':
+            patchify_adapter()
         elif util_choice == 'e':
             if database:
                 print("Freeing memory, this may take a little while...", flush=True)
@@ -51,6 +58,40 @@ def individual_search_adapter() -> None:
     latent_path = latent_path.replace("\"", "") # Windows 'copy as path' sometimes inserts ", so get rid of those
 
     search_adapter.individual_search(database, database_site, latent_path)
+
+
+def patchify_adapter() -> None:
+    print("\n====PATCHIFY====")
+    print("Patchify the wsi images in your database.\n")
+
+    database_path: str = input(" - Path to your database folder: ").replace("\\", "/").replace("\"", "")
+    validation_result = validate_dir_for_patchify(database_path)
+    if not validation_result.is_valid:
+        print(f"\n ERROR: {validation_result.failure_message}")
+        return
+    if 'WSI' in database_path:
+        print(f"\n ERROR: WSI selected instead of higher level DATABASE path")
+        return
+
+    new_base_path = os.path.join(database_path, 'PATCHES')
+    if os.path.exists(new_base_path):
+        shutil.rmtree(new_base_path)
+        print(f"Existing directory {new_base_path} removed")
+
+    # Recreate directory structure under PATCHES
+    mag_dir_pattern = re.compile(r"^\d+x$")
+    for root, dirs, files in os.walk(database_path):
+        new_root = root.replace('WSI', 'PATCHES')
+        os.makedirs(new_root, exist_ok=True)
+
+        # RUN PATCHIFY
+        if mag_dir_pattern.match(os.path.basename(root)) and 'PATCHES' not in root:
+            match = re.match(r"(\d+)x", os.path.basename(root))
+            magnification_level = int(match.group(1))
+            size = int(51.2 * magnification_level)
+
+            print(f"\n\n\n------Starting patchify for {root} with size {size}------")
+            create_patches_fp.process_images(source=root, save_dir=new_root, step_size=size, patch_size=size)
 
 
 def update_site_and_database():

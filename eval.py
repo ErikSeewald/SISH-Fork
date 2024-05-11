@@ -34,7 +34,7 @@ def Uncertainty_Cal(bag, is_organ=False):
         # Counting the diagnoiss by weigted count
         # If the count is less than 1, round to 1
         for lb_idx, lb in enumerate(label):
-            label_count[lb] += (1. / (lb_idx + 1)) * 1 # used to be "* weight[lb]" but idk where that var is from
+            label_count[lb] += (1. / (lb_idx + 1)) * weight[lb]
         for k, v in label_count.items():
             if v < 1.0:
                 v = 1.0
