@@ -7,6 +7,12 @@ Patchifying:
      On Linux this works out of the box as long as you install all the dependencies of this repository. On windows you will also need to modify [openslide_win_config.py](../openslide_win_config.py)
      to include the path to the openslide-win64/bin on your machine. This binary can be downloaded on their [website](https://openslide.org/api/python/).
 
+Mosaic creation:
+   - Using [sish_adapter.py](../sish_adapter.py) you can create mosaics for the entire PATCHES directory created in the previous step in one run.
+     The script also automatically executes the artifacts removal step. A very small amount of patches fail to be patchified. The script will print a 'FAILURE' message if that happens
+     and will continue to run. In our experience this only happens to about 0.2% of files.
+     The point about openslide above applies here as well.
+
 Main changes:
 - [sish_adapter.py](../sish_adapter.py):
     * Added sish_adapter to make using an external DATA directory (on a different drive for example) easier.
@@ -15,8 +21,11 @@ Main changes:
     * Made it possible to patchify the entire database in one run.
 - [search_adapter.py](../search_adapter.py):
     * Added search_adapter and modified [main_search.py](../main_search.py) accordingly to allow using a shared query function for both the search through all items and the single item search.
-- [database.py](../database.py):
-    * Modified the database to print updates with 'flush=True' to ensure that they are printed consistently.
+- Others:
+    * Modified lots of print statements with flush=True
+    * Added windows openslide support
+    * Updated some dependency integrations to work with newer versions
+    * Additionally to being callable as main, most scripts can now also be called as utility functions from other modules
 
 SISH 
 ===========
