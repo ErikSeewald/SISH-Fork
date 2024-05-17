@@ -81,10 +81,7 @@ def patchify_adapter() -> None:
     # Recreate directory structure under PATCHES
     mag_dir_pattern = re.compile(r"^\d+x$")
     for root, dirs, files in os.walk(database_path):
-        head, tail = os.path.split(root)
-        newtail = tail.replace('WSI', 'PATCHES')
-        new_root = os.path.join(head,newtail)
-        #new_root = root.replace('WSI', 'PATCHES')
+        new_root = root.replace('WSI', 'PATCHES')
         os.makedirs(new_root, exist_ok=True)
 
         # RUN PATCHIFY
@@ -148,7 +145,7 @@ def get_valid_wsi_path() -> str:
         print(f"\n ERROR: {validation_result.failure_message}")
         return "None"
     if 'WSI' in database_path:
-        print(f"\n ERROR: WSI selected instead of higher level DATABASE path")
+        print(f"\n ERROR: DATABASE PATH IS NOT ALLOWED TO CONTAIN SUBSTRING 'WSI'.")
         return "None"
     return database_path
 

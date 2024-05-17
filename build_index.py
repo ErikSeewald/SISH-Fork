@@ -6,7 +6,16 @@ import h5py
 import glob
 import torch
 import multiprocessing as mp
-import openslide
+
+# HANDLE OS SPECIFIC OPENSLIDE IMPORT
+if hasattr(os, 'add_dll_directory'):
+	import openslide_win_config
+
+	with os.add_dll_directory(openslide_win_config.get_openslide_path()):
+		import openslide
+else:
+	import openslide
+
 import copy
 import pickle
 from collections import OrderedDict
