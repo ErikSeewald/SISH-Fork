@@ -81,7 +81,10 @@ def patchify_adapter() -> None:
     # Recreate directory structure under PATCHES
     mag_dir_pattern = re.compile(r"^\d+x$")
     for root, dirs, files in os.walk(database_path):
-        new_root = root.replace('WSI', 'PATCHES')
+        head, tail = os.path.split(root)
+        newtail = tail.replace('WSI', 'PATCHES')
+        new_root = os.path.join(head,newtail)
+        #new_root = root.replace('WSI', 'PATCHES')
         os.makedirs(new_root, exist_ok=True)
 
         # RUN PATCHIFY
