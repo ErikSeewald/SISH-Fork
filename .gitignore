@@ -2,6 +2,11 @@
 QUERY_RESULTS/
 QUERY_SPEED/
 
+# folders
+checkpoints/
+DATA/
+DATABASES/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
