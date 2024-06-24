@@ -7,9 +7,8 @@ from sklearn.utils._param_validation import InvalidParameterError
 
 # HANDLE OS SPECIFIC OPENSLIDE IMPORT
 if hasattr(os, 'add_dll_directory'):
-    import openslide_win_config
-
-    with os.add_dll_directory(openslide_win_config.get_openslide_path()):
+    import SISH_Fork.openslide_win_config
+    with os.add_dll_directory(SISH_Fork.openslide_win_config.get_openslide_path()):
         import openslide
 else:
     import openslide
@@ -86,8 +85,19 @@ def process_slides(slide_data_path, slide_patch_path, save_path, num_cpu, sample
                        'TCGA-DQ-5630-01Z-00-DX1.07FE0581-2412-43DA-96A9-0DA192DAED3D']
 
     clf_path = "./checkpoints/trash_lgrlbp.pkl"
-    with open(clf_path, 'rb') as handle:
-        clf = pickle.load(handle)
+    try:
+        with open(clf_path, 'rb') as handle:
+            clf = pickle.load(handle)
+    except:
+        try:
+            clf_path = os.path.dirname(os.getcwd()) + "/SISH_Fork/checkpoints/trash_lgrlbp.pkl"
+            with open(clf_path, 'rb') as handle:
+                clf = pickle.load(handle)
+        except:
+            clf_path = os.path.dirname(os.path.dirname(os.getcwd())) + "/SISH_Fork/checkpoints/trash_lgrlbp.pkl"
+            with open(clf_path, 'rb') as handle:
+                clf = pickle.load(handle)
+
 
     if not os.path.exists(save_path):
         os.makedirs(os.path.join(save_path, 'coord'))
